@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	ninaMiddleware "github.com/JonecoBoy/nina/middleware"
+	ninaRouter "github.com/JonecoBoy/nina/router"
 	"net/http"
-	ninaMiddleware "nina/middleware"
-	ninaRouter "nina/router"
 )
 
 func main() {

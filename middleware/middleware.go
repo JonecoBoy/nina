@@ -1,9 +1,9 @@
 package middleware
 
 import (
+	"github.com/JonecoBoy/nina/router"
 	"log"
 	"net/http"
-	"nina/router"
 )
 
 func LogginMiddleware(next router.Handler) router.Handler {
