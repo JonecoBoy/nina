@@ -3,6 +3,8 @@ package router
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -47,6 +49,7 @@ type NinaRequest struct {
 	Host          string
 	Pattern       map[string]string
 	Params        *NinaParamsRequest
+	Body          interface{}
 }
 
 type NinaParamsRequest struct {
@@ -83,6 +86,66 @@ func (mux *ServeMux) GET(pattern string, handler Handler, middlewares ...Middlew
 			Host:          r.Host,
 			Params:        params,
 			UserAgent:     r.UserAgent(),
+		}
+		finalHandler(w, ninaRequest)
+	}))
+}
+
+func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle("POST "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var parsedBody interface{}
+
+		// Read and parse JSON body or form data
+		if r.Header.Get("Content-Type") == "application/json" {
+			bodyBytes, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Unable to read body", http.StatusBadRequest)
+				return
+			}
+			defer r.Body.Close()
+
+			var jsonBody map[string]interface{}
+			if err := json.Unmarshal(bodyBytes, &jsonBody); err != nil {
+				http.Error(w, "Invalid JSON", http.StatusBadRequest)
+				return
+			}
+			parsedBody = jsonBody
+		} else {
+			// Handle form data
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, "Unable to parse form", http.StatusBadRequest)
+				return
+			}
+			parsedBody = r.PostForm // Use parsed form data
+		}
+
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+			Body:          parsedBody, // Assign parsed body here
 		}
 		finalHandler(w, ninaRequest)
 	}))
