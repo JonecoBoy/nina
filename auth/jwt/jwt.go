@@ -1,4 +1,4 @@
-package auth
+package ninaJWT
 
 import (
 	"fmt"

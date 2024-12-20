@@ -27,3 +27,23 @@ func LogginMiddleware(next router.Handler) router.Handler {
 //		next.ServeHTTP(w, r)
 //	})
 //}
+
+// todo oauth middleware
+// todo log middleware
+// todo rate limit middleware
+// todo ip block middleware
+// todo region block middlewarE?
+// todo cors middleware
+// todo csrf middleware
+// todo gzip middleware
+// todo secure middleware
+// todo recover middleware
+// todo timeout middleware
+// todo cache middleware
+// todo xss sanitize middleware
+// todo hear beat?
+// todo content type block?
+// todo thrtole
+// todo http errors
+// todo clean path middleware https://github.com/go-chi/chi/blob/master/middleware/clean_path.go
+// todo compress https://github.com/go-chi/chi/blob/master/middleware/compress.go

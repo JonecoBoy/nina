@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/JonecoBoy/nina/auth"
+	ninaJWT "github.com/JonecoBoy/nina/auth/jwt"
 	ninaMiddleware "github.com/JonecoBoy/nina/middleware"
 	ninaRouter "github.com/JonecoBoy/nina/router"
 	"net/http"
@@ -52,40 +52,36 @@ func heloHandler(w http.ResponseWriter, r *ninaRouter.NinaRequest) {
 }
 
 func loginHandler(w http.ResponseWriter, r *ninaRouter.NinaRequest) {
-	type LoginRequest struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	// Check if the body is parsed JSON
-	body, ok := r.Body.(map[string]interface{})
-	if !ok {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Access the unified parsed body
+	body, err := r.GetBody()
+	if err != nil {
+		http.Error(w, "Invalid body format", http.StatusBadRequest)
 		return
 	}
 
-	// Extract username and password
+	// Extract fields
 	username, usernameOK := body["username"].(string)
 	password, passwordOK := body["password"].(string)
+
 	if !usernameOK || !passwordOK {
-		http.Error(w, "Invalid username or password fields", http.StatusBadRequest)
+		http.Error(w, "Invalid fields", http.StatusBadRequest)
 		return
 	}
 
-	// Validate credentials (dummy check)
+	// Validate credentials (dummy validation)
 	if username != dummyUser.Username || password != dummyUser.Password {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Generate token
-	token, err := auth.GenerateToken(username)
+	// Generate a JWT token
+	token, err := ninaJWT.GenerateToken(username)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 
-	// Respond with the token
+	// Return the token as a JSON response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": token,
@@ -110,7 +106,7 @@ func validateHandler(w http.ResponseWriter, r *ninaRouter.NinaRequest) {
 	}
 
 	// Validate the token
-	claims, err := auth.VerifyToken(token)
+	claims, err := ninaJWT.VerifyToken(token)
 	if err != nil {
 		http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 		return
@@ -122,4 +118,15 @@ func validateHandler(w http.ResponseWriter, r *ninaRouter.NinaRequest) {
 		"username": claims.Username,
 		"expires":  claims.ExpiresAt.Time.Format(time.RFC3339),
 	})
+}
+
+func setCookieHandler(w http.ResponseWriter, r *http.Request) {
+	cookie := http.Cookie{
+		Name:     "exampleCookie",
+		Value:    "cookieValue",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+	w.Write([]byte("Cookie set!"))
 }

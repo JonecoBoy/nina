@@ -1,14 +1,19 @@
 package router
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 type ServeMux struct {
@@ -32,6 +37,12 @@ func NewRouter() *ServeMux {
 	return mux
 }
 
+type GenericXML struct {
+	XMLName xml.Name
+	Content string       `xml:",chardata"`
+	Nodes   []GenericXML `xml:",any"`
+}
+
 type NinaRequest struct {
 	*http.Request
 	Header        http.Header
@@ -49,13 +60,28 @@ type NinaRequest struct {
 	Host          string
 	Pattern       map[string]string
 	Params        *NinaParamsRequest
-	Body          interface{}
+	body          interface{}
 }
 
 type NinaParamsRequest struct {
 	QueryString map[string]string
 	UriParams   map[string]string
 	Params      map[string]string
+}
+
+func (nr *NinaRequest) GetBody() (map[string]interface{}, error) {
+	// Check if the body exists
+	if nr.body == nil {
+		return nil, fmt.Errorf("body is empty or not initialized")
+	}
+
+	// Try to assert the body to a map
+	body, ok := nr.body.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to parse body as map[string]interface{}")
+	}
+
+	return body, nil
 }
 
 // variadic input
@@ -99,32 +125,66 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middle
 			return
 		}
 
-		var parsedBody interface{}
+		// Read the request body
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Unable to read body", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
 
-		// Read and parse JSON body or form data
-		if r.Header.Get("Content-Type") == "application/json" {
-			bodyBytes, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, "Unable to read body", http.StatusBadRequest)
-				return
-			}
-			defer r.Body.Close()
+		// Restore the body for potential reuse
+		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 
-			var jsonBody map[string]interface{}
-			if err := json.Unmarshal(bodyBytes, &jsonBody); err != nil {
+		// Parse body into a unified map
+		parsedBody := make(map[string]interface{})
+		contentType := r.Header.Get("Content-Type")
+
+		switch {
+		case contentType == "application/json":
+			// Parse JSON
+			if err := json.Unmarshal(bodyBytes, &parsedBody); err != nil {
 				http.Error(w, "Invalid JSON", http.StatusBadRequest)
 				return
 			}
-			parsedBody = jsonBody
-		} else {
-			// Handle form data
-			if err := r.ParseForm(); err != nil {
-				http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		case contentType == "application/xml" || contentType == "text/xml":
+			// Parse the XML into a generic tree structure
+			var root GenericXML
+			if err := xml.Unmarshal(bodyBytes, &root); err != nil {
+				http.Error(w, "Invalid XML", http.StatusBadRequest)
 				return
 			}
-			parsedBody = r.PostForm // Use parsed form data
+
+			// Convert the XML tree to a map
+			parsedBody = xmlToMap(root)
+
+		case contentType == "application/x-www-form-urlencoded":
+			// Parse form data
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, "Unable to parse form data", http.StatusBadRequest)
+				return
+			}
+			for key, values := range r.PostForm {
+				// Add form data to the map (use the first value for simplicity)
+				if len(values) > 0 {
+					parsedBody[key] = values[0]
+				}
+			}
+		default:
+			// For unsupported content types, treat as raw text and try to parse
+			rawBody := string(bodyBytes)
+			parsedMap, err := parseRawBody(rawBody)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Unable to parse raw body: %v", err), http.StatusBadRequest)
+				return
+			}
+			for key, value := range parsedMap {
+				parsedBody[key] = value
+			}
+			parsedBody["rawBody"] = string(bodyBytes)
 		}
 
+		// Set up request parameters
 		reqParams := getReqParams(r, pattern)
 		params := &NinaParamsRequest{
 			QueryString: reqParams["queryString"],
@@ -132,6 +192,7 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middle
 			Params:      reqParams["params"],
 		}
 
+		// Create the custom NinaRequest
 		ninaRequest := &NinaRequest{
 			Request:       r,
 			Header:        r.Header,
@@ -145,10 +206,44 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middle
 			Host:          r.Host,
 			Params:        params,
 			UserAgent:     r.UserAgent(),
-			Body:          parsedBody, // Assign parsed body here
+			body:          parsedBody, // Store the unified map
 		}
+
 		finalHandler(w, ninaRequest)
 	}))
+}
+
+func xmlToMap(node GenericXML) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	// If the node has no children, it's a leaf node
+	if len(node.Nodes) == 0 {
+		result[node.XMLName.Local] = node.Content
+		return result
+	}
+
+	// Recursively process child nodes
+	children := map[string]interface{}{}
+	for _, child := range node.Nodes {
+		childMap := xmlToMap(child)
+		for key, value := range childMap {
+			// Handle duplicate keys by appending to a slice
+			if existing, found := children[key]; found {
+				switch v := existing.(type) {
+				case []interface{}:
+					children[key] = append(v, value)
+				default:
+					children[key] = []interface{}{v, value}
+				}
+			} else {
+				children[key] = value
+			}
+		}
+	}
+
+	// Add the processed children to the current node
+	result[node.XMLName.Local] = children
+	return result
 }
 
 func getReqParams(r *http.Request, pattern string) map[string]map[string]string {
@@ -179,6 +274,76 @@ func parseQueryString(r *http.Request) map[string]string {
 		}
 	}
 	return qs
+}
+
+func parseRawBody(rawBody string) (map[string]string, error) {
+	// Define valid separators
+	separators := []rune{',', ';', '|'}
+	result := make(map[string]string)
+
+	var keyBuilder, valueBuilder strings.Builder
+	isEscaped := false
+	isParsingKey := true
+
+	for _, char := range rawBody {
+		switch {
+		case isEscaped:
+			// Append the escaped character
+			if isParsingKey {
+				keyBuilder.WriteRune(char)
+			} else {
+				valueBuilder.WriteRune(char)
+			}
+			isEscaped = false
+		case char == '\\':
+			// Handle escape sequences
+			isEscaped = true
+		case contains(separators, char):
+			// Handle separators
+			if isParsingKey {
+				return nil, errors.New("missing key-value separator '=' in raw body")
+			}
+			// Save the current key-value pair
+			key := strings.TrimSpace(keyBuilder.String())
+			value := strings.TrimSpace(valueBuilder.String())
+			if key != "" {
+				result[key] = value
+			}
+			// Reset builders for the next pair
+			keyBuilder.Reset()
+			valueBuilder.Reset()
+			isParsingKey = true
+		case char == '=' && isParsingKey:
+			// Switch to parsing the value
+			isParsingKey = false
+		default:
+			// Append to the appropriate builder
+			if isParsingKey {
+				keyBuilder.WriteRune(char)
+			} else {
+				valueBuilder.WriteRune(char)
+			}
+		}
+	}
+
+	// Add the final key-value pair if any
+	key := strings.TrimSpace(keyBuilder.String())
+	value := strings.TrimSpace(valueBuilder.String())
+	if key != "" {
+		result[key] = value
+	}
+
+	return result, nil
+}
+
+// Helper function to check if a rune is in a slice
+func contains(slice []rune, char rune) bool {
+	for _, v := range slice {
+		if v == char {
+			return true
+		}
+	}
+	return false
 }
 
 func parseUriParams(r *http.Request, pattern string) map[string]string {
