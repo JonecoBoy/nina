@@ -27,10 +27,10 @@ func main() {
 	// todo criar roteador  / grupo no router tpo /joneco sub routes
 	roteador := ninaRouter.NewRouter()
 
-	roteador.GET("/hello/{id}/{abc}", heloHandler, ninaMiddleware.LogginMiddleware)
+	roteador.GET("/hello/{id}/{abc}", heloHandler, ninaMiddleware.LoggingMiddleware, ninaMiddleware.ThrottlingMiddleware(1*time.Second, 2))
 
-	roteador.POST("/auth/login", loginHandler, ninaMiddleware.LogginMiddleware)
-	roteador.GET("/auth/validate", validateHandler, ninaMiddleware.LogginMiddleware)
+	roteador.POST("/auth/login", loginHandler, ninaMiddleware.LoggingMiddleware)
+	roteador.GET("/auth/validate", validateHandler, ninaMiddleware.LoggingMiddleware)
 
 	//roteador.POST("/hello/{id}", heloHandler)
 	//router.Handle("/hello/{version}", middleware(router.HandlerFunc(heloHandler)))
