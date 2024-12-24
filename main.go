@@ -27,19 +27,19 @@ func main() {
 	// todo criar roteador  / grupo no router tpo /joneco sub routes
 	roteador := ninaRouter.NewRouter()
 
-	roteador.GET("/hello/{id}/{abc}", heloHandler, ninaMiddleware.LoggingMiddleware, ninaMiddleware.ThrottlingMiddleware(1*time.Second, 2))
+	roteador.GET("/hello/{id}/{abc}", helloHandler, []ninaRouter.Middleware{ninaMiddleware.LoggingMiddleware, ninaMiddleware.ThrottlingMiddleware(1*time.Second, 2)})
 
-	roteador.POST("/auth/login", loginHandler, ninaMiddleware.LoggingMiddleware)
-	roteador.GET("/auth/validate", validateHandler, ninaMiddleware.LoggingMiddleware)
+	roteador.POST("/auth/login", loginHandler, []ninaRouter.Middleware{ninaMiddleware.LoggingMiddleware})
+	roteador.GET("/auth/validate", validateHandler, []ninaRouter.Middleware{ninaMiddleware.LoggingMiddleware})
 
-	//validationMap := map[string]string{
-	//	"user":     "admin",
-	//	"password": "1234",
-	//}
+	validationMap := map[string]string{
+		"user":     "admin",
+		"password": "1234",
+	}
 	//
 	//// Create a group with validation middleware
-	//group := roteador.GROUP("/hello", []router.Middleware{middleware.RequestValidatorMiddleware(validationMap)}, nil)
-
+	group := roteador.GROUP("/hello", []ninaRouter.Middleware{ninaMiddleware.RequestValidatorMiddleware(validationMap)}, nil)
+	group.POST("/hello2", helloHandler)
 	//roteador.POST("/hello/{id}", heloHandler)
 	//router.Handle("/hello/{version}", middleware(router.HandlerFunc(heloHandler)))
 
@@ -52,7 +52,7 @@ func main() {
 
 }
 
-func heloHandler(w http.ResponseWriter, r *ninaRouter.NinaRequest) {
+func helloHandler(w http.ResponseWriter, r *ninaRouter.NinaRequest) {
 	fmt.Println("Request to /hello")
 	jonas := r.PathValue("id")
 	fmt.Fprint(w, "Hello from get")

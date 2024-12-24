@@ -86,7 +86,7 @@ func (nr *NinaRequest) GetBody() (map[string]interface{}, error) {
 }
 
 // variadic input
-func (mux *ServeMux) GET(pattern string, handler Handler, middlewares ...Middleware) {
+func (mux *ServeMux) GET(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
 	mux.ServeMux.Handle("GET "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -118,7 +118,7 @@ func (mux *ServeMux) GET(pattern string, handler Handler, middlewares ...Middlew
 	}))
 }
 
-func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middleware) {
+func (mux *ServeMux) POST(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
 	mux.ServeMux.Handle("POST "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -214,7 +214,7 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middle
 	}))
 }
 
-func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares ...Middleware) {
+func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
 	mux.ServeMux.Handle("PUT "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
@@ -310,7 +310,7 @@ func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares ...Middlew
 	}))
 }
 
-func (mux *ServeMux) DELETE(pattern string, handler Handler, middlewares ...Middleware) {
+func (mux *ServeMux) DELETE(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
 	mux.ServeMux.Handle("DELETE "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
