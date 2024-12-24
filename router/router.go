@@ -61,6 +61,7 @@ type NinaRequest struct {
 	Pattern       map[string]string
 	Params        *NinaParamsRequest
 	body          interface{}
+	ValidatedData map[string]string
 }
 
 type NinaParamsRequest struct {

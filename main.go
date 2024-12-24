@@ -32,6 +32,14 @@ func main() {
 	roteador.POST("/auth/login", loginHandler, ninaMiddleware.LoggingMiddleware)
 	roteador.GET("/auth/validate", validateHandler, ninaMiddleware.LoggingMiddleware)
 
+	//validationMap := map[string]string{
+	//	"user":     "admin",
+	//	"password": "1234",
+	//}
+	//
+	//// Create a group with validation middleware
+	//group := roteador.GROUP("/hello", []router.Middleware{middleware.RequestValidatorMiddleware(validationMap)}, nil)
+
 	//roteador.POST("/hello/{id}", heloHandler)
 	//router.Handle("/hello/{version}", middleware(router.HandlerFunc(heloHandler)))
 
