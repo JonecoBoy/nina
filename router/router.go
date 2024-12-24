@@ -213,6 +213,134 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares ...Middle
 	}))
 }
 
+func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares ...Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle("PUT "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Read the request body
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Unable to read body", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		// Restore the body for potential reuse
+		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+
+		// Parse body into a unified map
+		parsedBody := make(map[string]interface{})
+		contentType := r.Header.Get("Content-Type")
+
+		switch {
+		case contentType == "application/json":
+			// Parse JSON
+			if err := json.Unmarshal(bodyBytes, &parsedBody); err != nil {
+				http.Error(w, "Invalid JSON", http.StatusBadRequest)
+				return
+			}
+		case contentType == "application/xml" || contentType == "text/xml":
+			// Parse the XML into a generic tree structure
+			var root GenericXML
+			if err := xml.Unmarshal(bodyBytes, &root); err != nil {
+				http.Error(w, "Invalid XML", http.StatusBadRequest)
+				return
+			}
+
+			// Convert the XML tree to a map
+			parsedBody = xmlToMap(root)
+
+		case contentType == "application/x-www-form-urlencoded":
+			// Parse form data
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, "Unable to parse form data", http.StatusBadRequest)
+				return
+			}
+			for key, values := range r.PostForm {
+				// Add form data to the map (use the first value for simplicity)
+				if len(values) > 0 {
+					parsedBody[key] = values[0]
+				}
+			}
+		default:
+			// For unsupported content types, treat as raw text and try to parse
+			rawBody := string(bodyBytes)
+			parsedMap, err := parseRawBody(rawBody)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Unable to parse raw body: %v", err), http.StatusBadRequest)
+				return
+			}
+			for key, value := range parsedMap {
+				parsedBody[key] = value
+			}
+			parsedBody["rawBody"] = string(bodyBytes)
+		}
+
+		// Set up request parameters
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		// Create the custom NinaRequest
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+			body:          parsedBody, // Store the unified map
+		}
+
+		finalHandler(w, ninaRequest)
+	}))
+}
+
+func (mux *ServeMux) DELETE(pattern string, handler Handler, middlewares ...Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle("DELETE "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+		}
+		finalHandler(w, ninaRequest)
+	}))
+}
+
 func xmlToMap(node GenericXML) map[string]interface{} {
 	result := make(map[string]interface{})
 
