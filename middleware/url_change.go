@@ -1,16 +1,16 @@
 package middleware
 
 import (
-	"github.com/JonecoBoy/nina/router"
 	"net/http"
 	"strings"
 )
 
-func UrlChangeMiddleware(oldPath, newPath string) router.Middleware {
-	return func(next router.Handler) router.Handler {
-		return router.Handler(func(w http.ResponseWriter, r *router.NinaRequest) {
-			if strings.HasPrefix(r.URL.Path, oldPath) {
-				r.URL.Path = strings.Replace(r.URL.Path, oldPath, newPath, 1)
+// UrlChangeMiddleware rewrites the request URL path from old to new.
+func UrlChangeMiddleware(old, new string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, old) {
+				r.URL.Path = strings.Replace(r.URL.Path, old, new, 1)
 			}
 			next.ServeHTTP(w, r)
 		})

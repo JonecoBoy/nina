@@ -12,11 +12,13 @@ func XSSSanitizeMiddleware() router.Middleware {
 	return func(next router.Handler) router.Handler {
 		return router.Handler(func(w http.ResponseWriter, r *router.NinaRequest) {
 			// Sanitize query parameters
-			for key, values := range r.URL.Query() {
-				for _, value := range values {
-					r.URL.Query().Set(key, policy.Sanitize(value))
+			query := r.URL.Query()
+			for key, values := range query {
+				for i, value := range values {
+					query[key][i] = policy.Sanitize(value)
 				}
 			}
+			r.URL.RawQuery = query.Encode()
 
 			// Sanitize form parameters
 			if err := r.ParseForm(); err == nil {

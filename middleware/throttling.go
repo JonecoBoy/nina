@@ -10,6 +10,7 @@ import (
 type client struct {
 	limiter  *time.Ticker
 	lastSeen time.Time
+	tokens   int
 }
 
 var (
@@ -26,6 +27,7 @@ func getClient(ip string, rate time.Duration, burst int) *client {
 		c = &client{
 			limiter:  time.NewTicker(rate),
 			lastSeen: time.Now(),
+			tokens:   burst,
 		}
 		clients[ip] = c
 	} else {
@@ -42,8 +44,16 @@ func ThrottlingMiddleware(rate time.Duration, burst int) router.Middleware {
 
 			select {
 			case <-client.limiter.C:
-				next.ServeHTTP(w, r)
+				if client.tokens < burst {
+					client.tokens++
+				}
 			default:
+			}
+
+			if client.tokens > 0 {
+				client.tokens--
+				next.ServeHTTP(w, r)
+			} else {
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)
 			}
 		})

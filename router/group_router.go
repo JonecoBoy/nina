@@ -56,3 +56,23 @@ func (g *Group) PUT(path string, handler Handler, middlewares ...Middleware) {
 func (g *Group) DELETE(path string, handler Handler, middlewares ...Middleware) {
 	g.addRoute(http.MethodDelete, path, handler, middlewares...)
 }
+
+func (g *Group) HEAD(path string, handler Handler, middlewares ...Middleware) {
+	g.addRoute(http.MethodHead, path, handler, middlewares...)
+}
+
+func (g *Group) PATCH(path string, handler Handler, middlewares ...Middleware) {
+	g.addRoute(http.MethodPatch, path, handler, middlewares...)
+}
+
+func (g *Group) OPTIONS(path string, handler Handler, middlewares ...Middleware) {
+	g.addRoute(http.MethodOptions, path, handler, middlewares...)
+}
+
+func (g *Group) CONNECT(path string, handler Handler, middlewares ...Middleware) {
+	g.addRoute(http.MethodConnect, path, handler, middlewares...)
+}
+
+func (g *Group) TRACE(path string, handler Handler, middlewares ...Middleware) {
+	g.addRoute(http.MethodTrace, path, handler, middlewares...)
+}

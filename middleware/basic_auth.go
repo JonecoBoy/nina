@@ -8,7 +8,7 @@ func BasicAuthMiddleware(username, password string, next http.Handler) http.Hand
 
 		if !ok || user != username || pass != password {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Please enter your username and password"`)
-			http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 

@@ -85,10 +85,9 @@ func (nr *NinaRequest) GetBody() (map[string]interface{}, error) {
 	return body, nil
 }
 
-// variadic input
 func (mux *ServeMux) GET(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
-	mux.ServeMux.Handle("GET "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.ServeMux.Handle(http.MethodGet+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -113,6 +112,7 @@ func (mux *ServeMux) GET(pattern string, handler Handler, middlewares []Middlewa
 			Host:          r.Host,
 			Params:        params,
 			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
 		}
 		finalHandler(w, ninaRequest)
 	}))
@@ -120,7 +120,7 @@ func (mux *ServeMux) GET(pattern string, handler Handler, middlewares []Middlewa
 
 func (mux *ServeMux) POST(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
-	mux.ServeMux.Handle("POST "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.ServeMux.Handle(http.MethodPost+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -207,6 +207,7 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares []Middlew
 			Host:          r.Host,
 			Params:        params,
 			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
 			body:          parsedBody, // Store the unified map
 		}
 
@@ -216,7 +217,7 @@ func (mux *ServeMux) POST(pattern string, handler Handler, middlewares []Middlew
 
 func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
-	mux.ServeMux.Handle("PUT "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.ServeMux.Handle(http.MethodPut+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -303,6 +304,7 @@ func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares []Middlewa
 			Host:          r.Host,
 			Params:        params,
 			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
 			body:          parsedBody, // Store the unified map
 		}
 
@@ -312,7 +314,7 @@ func (mux *ServeMux) PUT(pattern string, handler Handler, middlewares []Middlewa
 
 func (mux *ServeMux) DELETE(pattern string, handler Handler, middlewares []Middleware) {
 	finalHandler := applyMiddlewares(handler, middlewares...)
-	mux.ServeMux.Handle("DELETE "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.ServeMux.Handle(http.MethodDelete+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -337,6 +339,7 @@ func (mux *ServeMux) DELETE(pattern string, handler Handler, middlewares []Middl
 			Host:          r.Host,
 			Params:        params,
 			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
 		}
 		finalHandler(w, ninaRequest)
 	}))
@@ -373,6 +376,138 @@ func xmlToMap(node GenericXML) map[string]interface{} {
 	// Add the processed children to the current node
 	result[node.XMLName.Local] = children
 	return result
+}
+
+func (mux *ServeMux) TRACE(pattern string, handler Handler, middlewares []Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle(http.MethodTrace+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodTrace {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
+		}
+		finalHandler(w, ninaRequest)
+	}))
+}
+
+func (mux *ServeMux) OPTIONS(pattern string, handler Handler, middlewares []Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle(http.MethodOptions+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodOptions {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
+		}
+		finalHandler(w, ninaRequest)
+	}))
+}
+
+func (mux *ServeMux) HEAD(pattern string, handler Handler, middlewares []Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle(http.MethodHead+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodHead {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
+		}
+		finalHandler(w, ninaRequest)
+	}))
+}
+
+func (mux *ServeMux) CONNECT(pattern string, handler Handler, middlewares []Middleware) {
+	finalHandler := applyMiddlewares(handler, middlewares...)
+	mux.ServeMux.Handle(http.MethodConnect+" "+pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		reqParams := getReqParams(r, pattern)
+		params := &NinaParamsRequest{
+			QueryString: reqParams["queryString"],
+			UriParams:   reqParams["uriParams"],
+			Params:      reqParams["params"],
+		}
+
+		ninaRequest := &NinaRequest{
+			Request:       r,
+			Header:        r.Header,
+			Form:          &r.Form,
+			Method:        r.Method,
+			PostForm:      &r.PostForm,
+			ctx:           r.Context(),
+			ContentLength: r.ContentLength,
+			tls:           r.TLS,
+			Proto:         r.Proto,
+			Host:          r.Host,
+			Params:        params,
+			UserAgent:     r.UserAgent(),
+			RemoteAddr:    r.RemoteAddr,
+		}
+		finalHandler(w, ninaRequest)
+	}))
 }
 
 func getReqParams(r *http.Request, pattern string) map[string]map[string]string {
@@ -485,6 +620,10 @@ func parseUriParams(r *http.Request, pattern string) map[string]string {
 	}
 
 	return params
+}
+
+func (r *NinaRequest) SetContext(ctx context.Context) {
+	r.Request = r.Request.WithContext(ctx)
 }
 
 // variadic so can be any size of array
