@@ -21,9 +21,20 @@ func TestRouter(t *testing.T) {
 		w.Write([]byte("Hello, World!"))
 	}
 
+	putHandler := func(w http.ResponseWriter, r *NinaRequest) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello, World!"))
+	}
+	deleteHandler := func(w http.ResponseWriter, r *NinaRequest) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello, World!"))
+	}
+
 	// Register the route with the handler
 	nr.GET("/hello/{id}", helloHandler, []Middleware{})
 	nr.POST("/post/{id}", postHandler, []Middleware{})
+	nr.PUT("/put/{id}", putHandler, []Middleware{})
+	nr.DELETE("/delete/{id}", deleteHandler, []Middleware{})
 
 	tests := []struct {
 		method     string
@@ -32,8 +43,12 @@ func TestRouter(t *testing.T) {
 	}{
 		{"GET", "/hello/123", http.StatusOK},
 		{"POST", "/post/321", http.StatusOK},
+		{"PUT", "/put/321", http.StatusOK},
+		{"DELETE", "/delete/321", http.StatusOK},
 		{"POST", "/hello/123", http.StatusMethodNotAllowed},
 		{"GET", "/post/321", http.StatusMethodNotAllowed},
+		{"DELETE", "/put/321", http.StatusMethodNotAllowed},
+		{"PUT", "/delete/321", http.StatusMethodNotAllowed},
 	}
 
 	for _, tt := range tests {
