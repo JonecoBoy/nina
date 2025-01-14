@@ -20,10 +20,10 @@ func TestGroupRouter(t *testing.T) {
 	group := nr.GROUP("/api", nil, nil)
 
 	// Register routes within the group
-	group.GET("/hello", helloHandler)
-	group.POST("/hello", helloHandler)
-	group.PUT("/hello", helloHandler)
-	group.DELETE("/hello", helloHandler)
+	group.GET("/hello", helloHandler, nil)
+	group.POST("/hello", helloHandler, nil)
+	group.PUT("/hello", helloHandler, nil)
+	group.DELETE("/hello", helloHandler, nil)
 
 	tests := []struct {
 		method     string

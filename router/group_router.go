@@ -18,7 +18,7 @@ func (mux *ServeMux) GROUP(prefix string, preMiddlewares []Middleware, postMiddl
 	}
 }
 
-func (g *Group) addRoute(method, path string, handler Handler, middlewares ...Middleware) {
+func (g *Group) addRoute(method, path string, handler Handler, middlewares []Middleware) {
 	fullPath := g.prefix + path
 	allMiddlewares := append(g.preMiddlewares, middlewares...)
 	allMiddlewares = append(allMiddlewares, g.postMiddlewares...)
@@ -41,38 +41,38 @@ func (g *Group) addRoute(method, path string, handler Handler, middlewares ...Mi
 	}))
 }
 
-func (g *Group) GET(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodGet, path, handler, middlewares...)
+func (g *Group) GET(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodGet, path, handler, middlewares)
 }
 
-func (g *Group) POST(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodPost, path, handler, middlewares...)
+func (g *Group) POST(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodPost, path, handler, middlewares)
 }
 
-func (g *Group) PUT(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodPut, path, handler, middlewares...)
+func (g *Group) PUT(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodPut, path, handler, middlewares)
 }
 
-func (g *Group) DELETE(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodDelete, path, handler, middlewares...)
+func (g *Group) DELETE(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodDelete, path, handler, middlewares)
 }
 
-func (g *Group) HEAD(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodHead, path, handler, middlewares...)
+func (g *Group) HEAD(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodHead, path, handler, middlewares)
 }
 
-func (g *Group) PATCH(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodPatch, path, handler, middlewares...)
+func (g *Group) PATCH(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodPatch, path, handler, middlewares)
 }
 
-func (g *Group) OPTIONS(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodOptions, path, handler, middlewares...)
+func (g *Group) OPTIONS(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodOptions, path, handler, middlewares)
 }
 
-func (g *Group) CONNECT(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodConnect, path, handler, middlewares...)
+func (g *Group) CONNECT(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodConnect, path, handler, middlewares)
 }
 
-func (g *Group) TRACE(path string, handler Handler, middlewares ...Middleware) {
-	g.addRoute(http.MethodTrace, path, handler, middlewares...)
+func (g *Group) TRACE(path string, handler Handler, middlewares []Middleware) {
+	g.addRoute(http.MethodTrace, path, handler, middlewares)
 }
