@@ -1,4 +1,4 @@
-module github.com/JonecoBoy/nina
+module github.com/jonecoboy/nina
 
 go 1.23.4
 

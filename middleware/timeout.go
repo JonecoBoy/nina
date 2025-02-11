@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/JonecoBoy/nina/router"
+	"github.com/jonecoboy/nina/router"
 	"net/http"
 	"time"
 )

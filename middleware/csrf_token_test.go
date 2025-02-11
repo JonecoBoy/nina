@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	ninaRouter "github.com/JonecoBoy/nina/router"
+	ninaRouter "github.com/jonecoboy/nina/router"
 )
 
 func TestCSRFMiddleware(t *testing.T) {

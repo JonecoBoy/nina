@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	ninaRouter "github.com/JonecoBoy/nina/router"
+	ninaRouter "github.com/jonecoboy/nina/router"
 	"net/http"
 )
 

@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"bytes"
-	"github.com/JonecoBoy/nina/router"
+	"github.com/jonecoboy/nina/router"
 	"log"
 	"net/http"
 	"net/http/httptest"

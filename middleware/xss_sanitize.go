@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/JonecoBoy/nina/router"
+	"github.com/jonecoboy/nina/router"
 	"github.com/microcosm-cc/bluemonday"
 	"net/http"
 )

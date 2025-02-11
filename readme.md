@@ -2,7 +2,7 @@ package main
 
 import (
 "fmt"
-ninaRouter "github.com/JonecoBoy/nina/router"
+ninaRouter "github.com/jonecoboy/nina/router"
 "net/http"
 "time"
 )
