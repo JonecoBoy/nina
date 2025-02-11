@@ -1,3 +1,3 @@
-module github.com/JonecoBoy/nina/auth/event
+module github.com/JonecoBoy/nina/event
 
 go 1.23.4
