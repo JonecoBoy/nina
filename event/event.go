@@ -52,7 +52,7 @@ func (ed *EventDispatcher) Register(eventName string, handler EventHandlerInterf
 			}
 		}
 	}
-	// if not registered, add to the map
+	// if not registered, add to the map.
 	ed.handlers[eventName] = append(ed.handlers[eventName], handler)
 	return nil
 }
